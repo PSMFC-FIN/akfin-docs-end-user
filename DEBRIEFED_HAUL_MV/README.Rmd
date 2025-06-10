@@ -20,10 +20,23 @@ knitr::opts_chunk$set(
 
 <!-- badges: end -->
 
-The NORPAC.DEBRIEFED_HAUL_MV is a snapshot of the [NORPAC.DEBREIFED_HAUL](https://www.fisheries.noaa.gov/inport/item/10659) table provided daily by FMA.
+The NORPAC.DEBRIEFED_HAUL_MV is a snapshot of the NORPAC.DEBREIFED_HAUL table provided daily by FMA.
 
 This and other materialized views in AKFIN's NORPAC schema refresh nightly after the NORPAC load from FMA is complete.
 
+### Base Data Sources
+- [NORPAC.DEBREIFED_HAUL](https://www.fisheries.noaa.gov/inport/item/10659) provides haul level data from observer program.
+
+This materialized view also merges in offload records from NORPAC.DEBRIEFED_SPCOMP, NORPAC.DEBRIEFED_LENGTH, AND NORPAC.DEBRIEFED_AGE when haul was unavailable as RECORD_TYPE = 'OFFLOAD' to facilitate an inner join within the Answers BI Repository. These records are NULL for most fields.
+
+### Ancilary data
+- Vessel data from AKR.V_VESSEL or 
+- Deployment data (Deployment trip info and monitoring_status) from akr.MV_OBSERVED_DEPLOYMENT_TRIPS
+- Haul and trip target info from akr.v_obs_haul
+- Gear description from norpac.gear_type_codes or NORPAC.DOMESTIC_GEAR
+- Gear performance from NORPAC.ATL_LOV_GEAR_PERFORMANCE
+- FMP area and subarea from COUNCIL.FMP_AREA_V
+-
 
 
 ```{r message = FALSE, warning = FALSE, echo=FALSE}
@@ -31,16 +44,28 @@ library(keyring)
 library(tidyverse)
 library(kableExtra)
 library(odbc)
+library(getPass)
+library(akfinupload)
 
 keying_service <- "akfin_oracle_db"
 
-con <- dbConnect(odbc::odbc(), "akfin", UID=key_list(keying_service)$username, PWD = keyring::key_get(keying_service, keyring::key_list(keying_service)$username))
+# con <- dbConnect(odbc::odbc(), "akfin", UID=key_list(keying_service)$username, PWD = keyring::key_get(keying_service, keyring::key_list(keying_service)$username))
+
+# con <- dbConnect(odbc::odbc(), "akfin", UID=key_list("akfin_oracle_db")$username, PWD = keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
+
+con <- connect_akfin(method="RJDBC", credential_method="keyring",
+                                 keyring_service="akfin_oracle_db",
+                                 schema=NA,
+                                 network="NOAA")
 
 
 comments<-dbFetch(dbSendQuery(con,
                            paste0("select * from all_col_comments where owner = 'NORPAC' and table_name = 'DEBRIEFED_HAUL_MV'")))
   
-  
+comments <-comments %>%
+  dplyr::select(COLUMN_NAME, COMMENTS)
+
+kable(comments)
 
 ```
 
