@@ -1,0 +1,46 @@
+---
+output: github_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+## NORPAC.DEBRIEFED_HAUL_MV
+
+<!-- badges: start -->
+
+<!-- badges: end -->
+
+The NORPAC.DEBRIEFED_HAUL_MV is a snapshot of the [NORPAC.DEBREIFED_HAUL](https://www.fisheries.noaa.gov/inport/item/10659) table provided daily by FMA.
+
+This and other materialized views in AKFIN's NORPAC schema refresh nightly after the NORPAC load from FMA is complete.
+
+
+
+```{r message = FALSE, warning = FALSE, echo=FALSE}
+library(keyring)
+library(tidyverse)
+library(kableExtra)
+library(odbc)
+
+keying_service <- "akfin_oracle_db"
+
+con <- dbConnect(odbc::odbc(), "akfin", UID=key_list(keying_service)$username, PWD = keyring::key_get(keying_service, keyring::key_list(keying_service)$username))
+
+
+comments<-dbFetch(dbSendQuery(con,
+                           paste0("select * from all_col_comments where owner = 'NORPAC' and table_name = 'DEBRIEFED_HAUL_MV'")))
+  
+  
+
+```
+
